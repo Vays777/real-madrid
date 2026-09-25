@@ -111,11 +111,10 @@
     async function fetchCalendar() {
         try {
             const targetUrl = encodeURIComponent('https://footballcal.com');
-            // ИСПРАВЛЕНО: Восстановлен правильный синтаксис темплейтных строк для iOS
             const res = await fetch(`https://allorigins.win{targetUrl}`);
-            if (!res.ok) throw new Error('Net');
+            if (!res.ok) throw new Error('NetError');
             const data = await res.json();
-            if (!data || !data.contents) throw new Error('Empty');
+            if (!data || !data.contents) throw new Error('EmptyData');
             
             const cleanContents = data.contents.replace(/http:\/\//g, 'https://');
             const events = cleanContents.split('BEGIN:VEVENT');
@@ -125,7 +124,7 @@
                 const sumMatch = ev.match(/SUMMARY:(.+)/);
                 const startMatch = ev.match(/DTSTART:(.+)/);
                 
-                // ИСПРАВЛЕНО ДЛЯ SAFARI: Безопасное чтение значений по индексу из регулярного выражения
+                // ИСПРАВЛЕНО ДЛЯ IPHONE: Строго извлекаем элемент [1] из массива совпадений и только потом чистим как строку
                 if (sumMatch && sumMatch[1] && startMatch && startMatch[1]) {
                     let titleStr = String(sumMatch[1]).replace(/\r|\n/g, '').trim();
                     let dateStr = String(startMatch[1]).replace(/\r|\n/g, '').trim();
@@ -149,12 +148,12 @@
             });
             
             list.sort((a,b) => a.time - b.time); 
-            if (list.length) nextMatch = list[0];
+            if (list.length) nextMatch = list[0]; // Берем первый актуальный матч из списка
         } catch (e) { 
-            console.error("Error parsing calendar:", e); 
+            console.error("iOS parsing intercepted:", e); 
         }
         
-        // Резервный хардкод, если сеть лежит
+        // Гарантированный хардкод, если Safari заблокировал внешнюю сеть
         if (!nextMatch) { 
             nextMatch = { title: "Ла Лига: Реал Мадрид — Вильярреал", time: 1791658800000, display: "10 Окт, 22:00 МСК" }; 
         }
@@ -168,7 +167,7 @@
             
             const timerEl = document.getElementById('timer'), cardEl = document.getElementById('card');
             
-            // Защита: пока nextMatch равен null, часы тикают, но текст синхронизации не ломается
+            // Если сеть еще грузится и хардкод не встал — прерываем выполнение без падения
             if (!nextMatch) return;
             
             document.getElementById('m-title').textContent = nextMatch.title;
